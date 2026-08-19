@@ -1,10 +1,12 @@
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// Input handling for NavMapView: SELECT toggles route recording on/off,
-// UP/DOWN (next/previous page behavior) zoom the map in/out, MENU opens
-// trail options (currently: save the recorded track), BACK stops any
-// recording in progress and returns to SearchView.
+// Input handling for NavMapView: SELECT opens "Map Options" (start/stop
+// recording, save trail) - matching the same "press the button, see
+// labeled choices" pattern as every other screen in the app, rather than
+// silently toggling recording with no menu. UP/DOWN (next/previous page
+// behavior) zoom the map in/out. BACK stops any recording in progress and
+// returns to SearchView.
 class NavMapDelegate extends WatchUi.BehaviorDelegate {
 
     private var _view as NavMapView;
@@ -15,13 +17,7 @@ class NavMapDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onSelect() as Boolean {
-        var recorder = getApp().routeRecorder;
-        if (recorder.recording) {
-            recorder.stopRecording();
-        } else {
-            recorder.startRecording();
-        }
-        WatchUi.requestUpdate();
+        showMapOptions();
         return true;
     }
 
@@ -36,14 +32,23 @@ class NavMapDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onMenu() as Boolean {
-        if (!getApp().routeRecorder.hasSavableTrail()) {
-            _view.showToast("Record a trail first");
-            return true;
-        }
-        var menu = new WatchUi.Menu2({ :title => "Trail Options" });
-        menu.addItem(new WatchUi.MenuItem("Save Trail", null, :saveTrail, {}));
-        WatchUi.pushView(menu, new NavMenuDelegate(_view), WatchUi.SLIDE_UP);
+        showMapOptions();
         return true;
+    }
+
+    function showMapOptions() as Void {
+        var recorder = getApp().routeRecorder;
+        var menu = new WatchUi.Menu2({ :title => "Map Options" });
+        menu.addItem(new WatchUi.MenuItem(
+            recorder.recording ? "Stop Recording" : "Start Recording",
+            null,
+            :toggleRecording,
+            {}
+        ));
+        if (recorder.hasSavableTrail()) {
+            menu.addItem(new WatchUi.MenuItem("Save Trail", null, :saveTrail, {}));
+        }
+        WatchUi.pushView(menu, new NavMenuDelegate(_view), WatchUi.SLIDE_UP);
     }
 
     function onBack() as Boolean {
