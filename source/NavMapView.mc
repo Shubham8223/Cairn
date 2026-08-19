@@ -29,6 +29,8 @@ class NavMapView extends WatchUi.MapView {
     private var _alertTarget as Float = 0.0;
     private var _alertTimer as Timer.Timer?;
     private var _zoomIndex as Number = Constants.DEFAULT_ZOOM_INDEX;
+    private var _toastText as String = "";
+    private var _toastTimer as Timer.Timer?;
     private var _lastTopLeft as Position.Location?;
     private var _lastBottomRight as Position.Location?;
 
@@ -53,6 +55,29 @@ class NavMapView extends WatchUi.MapView {
             _alertTimer.stop();
             _alertTimer = null;
         }
+        if (_toastTimer != null) {
+            _toastTimer.stop();
+            _toastTimer = null;
+        }
+    }
+
+    // Brief on-screen confirmation (e.g. "Trail Saved"), used by
+    // NavMenuDelegate. Auto-clears after Constants.TOAST_DURATION_MS.
+    function showToast(text as String) as Void {
+        _toastText = text;
+        WatchUi.requestUpdate();
+
+        if (_toastTimer != null) {
+            _toastTimer.stop();
+        }
+        _toastTimer = new Timer.Timer();
+        _toastTimer.start(method(:onToastTimeout), Constants.TOAST_DURATION_MS, false);
+    }
+
+    function onToastTimeout() as Void {
+        _toastText = "";
+        _toastTimer = null;
+        WatchUi.requestUpdate();
     }
 
     // Recorded/predefined route track -> the map's single polyline slot.
@@ -227,6 +252,19 @@ class NavMapView extends WatchUi.MapView {
         if (_alertProgress > 0.0) {
             AlertOverlay.draw(dc, _alertProgress);
         }
+
+        if (_toastText.length() > 0) {
+            drawToast(dc);
+        }
+    }
+
+    // Bottom-center, mirroring the HUD's top-center placement - stays
+    // inside the round bezel's safe area the same way drawHud() does.
+    function drawToast(dc as Graphics.Dc) as Void {
+        var cx = dc.getWidth() / 2;
+        var y = dc.getHeight() - 40;
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
+        dc.drawText(cx, y, Graphics.FONT_XTINY, _toastText, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
     function drawDestinationLine(dc as Graphics.Dc) as Void {

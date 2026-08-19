@@ -2,8 +2,9 @@ import Toybox.Lang;
 import Toybox.WatchUi;
 
 // Input handling for NavMapView: SELECT toggles route recording on/off,
-// UP/DOWN (next/previous page behavior) zoom the map in/out, BACK stops
-// any recording in progress and returns to SearchView.
+// UP/DOWN (next/previous page behavior) zoom the map in/out, MENU opens
+// trail options (currently: save the recorded track), BACK stops any
+// recording in progress and returns to SearchView.
 class NavMapDelegate extends WatchUi.BehaviorDelegate {
 
     private var _view as NavMapView;
@@ -31,6 +32,17 @@ class NavMapDelegate extends WatchUi.BehaviorDelegate {
 
     function onNextPage() as Boolean {
         _view.zoomOut();
+        return true;
+    }
+
+    function onMenu() as Boolean {
+        if (!getApp().routeRecorder.hasSavableTrail()) {
+            _view.showToast("Record a trail first");
+            return true;
+        }
+        var menu = new WatchUi.Menu2({ :title => "Trail Options" });
+        menu.addItem(new WatchUi.MenuItem("Save Trail", null, :saveTrail, {}));
+        WatchUi.pushView(menu, new NavMenuDelegate(_view), WatchUi.SLIDE_UP);
         return true;
     }
 

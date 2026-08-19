@@ -36,7 +36,7 @@ class DestinationMenuDelegate extends WatchUi.Menu2InputDelegate {
             return;
         }
         WatchUi.pushView(
-            new WatchUi.TextPicker(""),
+            new WatchUi.TextPicker(getApp().lastSearchText),
             new SearchTextPickerDelegate(_view),
             WatchUi.SLIDE_UP
         );

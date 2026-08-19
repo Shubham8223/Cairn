@@ -1,9 +1,10 @@
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// Input handling for SearchView: SELECT opens the "Set Destination" menu
-// (search / current location / coordinates), MENU skips straight to the
-// map with no destination set.
+// Input handling for SearchView: SELECT is the one clear entry point,
+// opening the home menu (find destination / load trail / go to map).
+// MENU is kept as an unadvertised power-user shortcut straight to the map,
+// matching the old behavior, but the menu no longer requires remembering it.
 class SearchDelegate extends WatchUi.BehaviorDelegate {
 
     private var _view as SearchView;
@@ -14,11 +15,11 @@ class SearchDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onSelect() as Boolean {
-        var menu = new WatchUi.Menu2({ :title => "Set Destination" });
-        menu.addItem(new WatchUi.MenuItem("Search", null, :search, {}));
-        menu.addItem(new WatchUi.MenuItem("Current Location", null, :currentLocation, {}));
-        menu.addItem(new WatchUi.MenuItem("Coordinates", null, :coordinates, {}));
-        WatchUi.pushView(menu, new DestinationMenuDelegate(_view), WatchUi.SLIDE_UP);
+        var menu = new WatchUi.Menu2({ :title => "Cairn" });
+        menu.addItem(new WatchUi.MenuItem("Find Destination", null, :findDestination, {}));
+        menu.addItem(new WatchUi.MenuItem("Load Trail", null, :loadTrail, {}));
+        menu.addItem(new WatchUi.MenuItem("Go to Map", null, :goToMap, {}));
+        WatchUi.pushView(menu, new HomeMenuDelegate(_view), WatchUi.SLIDE_UP);
         return true;
     }
 

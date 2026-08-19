@@ -18,9 +18,10 @@ class SearchTextPickerDelegate extends WatchUi.TextPickerDelegate {
 
     function onTextEntered(text as String, changed as Boolean) as Boolean {
         if (text == null || text.length() == 0) {
-            _view.setStatus("SELECT: search\nMENU: skip to map");
+            _view.setStatus(Constants.HOME_HINT_TEXT);
             return true;
         }
+        getApp().lastSearchText = text;
 
         // Same search box doubles as coordinate entry: "40.015,-105.27" (or
         // space-separated) skips the network round-trip entirely.
@@ -67,7 +68,7 @@ class SearchTextPickerDelegate extends WatchUi.TextPickerDelegate {
             return;
         }
 
-        _view.setStatus("SELECT: search\nMENU: skip to map");
+        _view.setStatus(Constants.HOME_HINT_TEXT);
 
         var menu = new WatchUi.Menu2({ :title => "Results" });
         for (var i = 0; i < results.size(); i++) {

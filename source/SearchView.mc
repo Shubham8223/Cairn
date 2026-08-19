@@ -3,13 +3,15 @@ import Toybox.Lang;
 import Toybox.Timer;
 import Toybox.WatchUi;
 
-// Landing screen: lets the user search for a destination via Nominatim, or
-// skip straight to the map. Also surfaces search status/errors since the
-// TextPicker and results Menu2 are transient pushed views that disappear
-// once the user backs out of them.
+// Landing screen: a single clear call-to-action (SELECT opens the home
+// menu) rather than the old two-button "SELECT vs MENU" legend the user
+// had to memorize. Also surfaces status/errors from the destination flow
+// (search, GPS fix, trail load/save) since those are transient pushed
+// views that disappear once the user backs out of them, leaving this as
+// the durable surface underneath.
 class SearchView extends WatchUi.View {
 
-    private var _statusText as String = "SELECT: search\nMENU: skip to map";
+    private var _statusText as String = Constants.HOME_HINT_TEXT;
 
     // Small "breathing" accent dot above the title, purely decorative -
     // gives the landing screen a live/ready feel instead of a static splash.

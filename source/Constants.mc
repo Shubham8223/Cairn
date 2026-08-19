@@ -10,6 +10,9 @@ module Constants {
     const NOMINATIM_USER_AGENT as String = "Cairn/1.0 garmin-forerunner-965";
     const SEARCH_RESULT_LIMIT as Number = 5;
 
+    // -- Home screen ----------------------------------------------------
+    const HOME_HINT_TEXT as String = "Press SELECT\nto begin";
+
     // -- Off-route detection --------------------------------------------
     const OFF_ROUTE_THRESHOLD_METERS as Float = 50.0f;
     // Consecutive over-threshold GPS fixes required before flagging off-route,
@@ -19,6 +22,10 @@ module Constants {
     // -- Route recording --------------------------------------------------
     const WAYPOINT_CAPTURE_INTERVAL_MS as Number = 5000;
     const MAX_WAYPOINTS as Number = 500;
+
+    // -- Saved trails -------------------------------------------------------
+    const MAX_SAVED_TRAILS as Number = 20;
+    const TOAST_DURATION_MS as Number = 2000;
 
     // -- Geometry ---------------------------------------------------------
     const EARTH_RADIUS_METERS as Float = 6371000.0f;
