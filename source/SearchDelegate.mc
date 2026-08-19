@@ -1,9 +1,9 @@
 import Toybox.Lang;
-import Toybox.System;
 import Toybox.WatchUi;
 
-// Input handling for SearchView: SELECT opens the text-entry search flow,
-// MENU skips straight to the map with no destination set.
+// Input handling for SearchView: SELECT opens the "Set Destination" menu
+// (search / current location / coordinates), MENU skips straight to the
+// map with no destination set.
 class SearchDelegate extends WatchUi.BehaviorDelegate {
 
     private var _view as SearchView;
@@ -14,21 +14,17 @@ class SearchDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onSelect() as Boolean {
-        var settings = System.getDeviceSettings();
-        if (!settings.connectionAvailable) {
-            _view.setStatus("Connect to Wi-Fi to search");
-            return true;
-        }
-        WatchUi.pushView(
-            new WatchUi.TextPicker(""),
-            new SearchTextPickerDelegate(_view),
-            WatchUi.SLIDE_UP
-        );
+        var menu = new WatchUi.Menu2({ :title => "Set Destination" });
+        menu.addItem(new WatchUi.MenuItem("Search", null, :search, {}));
+        menu.addItem(new WatchUi.MenuItem("Current Location", null, :currentLocation, {}));
+        menu.addItem(new WatchUi.MenuItem("Coordinates", null, :coordinates, {}));
+        WatchUi.pushView(menu, new DestinationMenuDelegate(_view), WatchUi.SLIDE_UP);
         return true;
     }
 
     function onMenu() as Boolean {
-        WatchUi.switchToView(new NavMapView(), new NavMapDelegate(), WatchUi.SLIDE_LEFT);
+        var view = new NavMapView();
+        WatchUi.switchToView(view, new NavMapDelegate(view), WatchUi.SLIDE_LEFT);
         return true;
     }
 

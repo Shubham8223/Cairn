@@ -1,6 +1,7 @@
 import Toybox.Communications;
 import Toybox.Lang;
 import Toybox.PersistedContent;
+import Toybox.Position;
 import Toybox.WatchUi;
 
 // Handles the submitted search text: fires the Nominatim HTTP GET request
@@ -17,7 +18,19 @@ class SearchTextPickerDelegate extends WatchUi.TextPickerDelegate {
 
     function onTextEntered(text as String, changed as Boolean) as Boolean {
         if (text == null || text.length() == 0) {
-            _view.setStatus("No results found");
+            _view.setStatus("SELECT: search\nMENU: skip to map");
+            return true;
+        }
+
+        // Same search box doubles as coordinate entry: "40.015,-105.27" (or
+        // space-separated) skips the network round-trip entirely.
+        var coords = Utils.tryParseCoordinates(text);
+        if (coords != null) {
+            var app = getApp();
+            app.destination = coords as Position.Location;
+            app.destinationName = "Custom Coordinates";
+            var view = new NavMapView();
+            WatchUi.switchToView(view, new NavMapDelegate(view), WatchUi.SLIDE_LEFT);
             return true;
         }
 

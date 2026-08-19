@@ -30,6 +30,14 @@ module Constants {
     const ALERT_BANNER_COLOR = Graphics.COLOR_RED;
     const ACCENT_COLOR = Graphics.COLOR_GREEN;
 
+    // -- Map zoom -----------------------------------------------------------
+    // Angular span (degrees) shown around the current position; UP/DOWN step
+    // through this list rather than a continuous zoom, so it stays
+    // predictable. Roughly ~150m across at the closest level to ~20km at the
+    // widest, similar to native Garmin map zoom steps.
+    const ZOOM_SPANS_DEGREES as Array<Float> = [0.0015f, 0.003f, 0.006f, 0.012f, 0.025f, 0.05f, 0.1f, 0.2f];
+    const DEFAULT_ZOOM_INDEX as Number = 3;
+
     // Fallback route usable without a live recorded track, so off-route
     // detection always has something to compare against. A small demo
     // loop; replace with real waypoints for an actual trail.

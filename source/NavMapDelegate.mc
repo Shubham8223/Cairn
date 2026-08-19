@@ -2,11 +2,15 @@ import Toybox.Lang;
 import Toybox.WatchUi;
 
 // Input handling for NavMapView: SELECT toggles route recording on/off,
-// BACK stops any recording in progress and returns to SearchView.
+// UP/DOWN (next/previous page behavior) zoom the map in/out, BACK stops
+// any recording in progress and returns to SearchView.
 class NavMapDelegate extends WatchUi.BehaviorDelegate {
 
-    function initialize() {
+    private var _view as NavMapView;
+
+    function initialize(view as NavMapView) {
         BehaviorDelegate.initialize();
+        _view = view;
     }
 
     function onSelect() as Boolean {
@@ -17,6 +21,16 @@ class NavMapDelegate extends WatchUi.BehaviorDelegate {
             recorder.startRecording();
         }
         WatchUi.requestUpdate();
+        return true;
+    }
+
+    function onPreviousPage() as Boolean {
+        _view.zoomIn();
+        return true;
+    }
+
+    function onNextPage() as Boolean {
+        _view.zoomOut();
         return true;
     }
 

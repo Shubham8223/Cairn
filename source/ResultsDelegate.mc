@@ -25,7 +25,8 @@ class ResultsDelegate extends WatchUi.Menu2InputDelegate {
         });
         app.destinationName = r.get(:name) as String;
 
-        WatchUi.switchToView(new NavMapView(), new NavMapDelegate(), WatchUi.SLIDE_LEFT);
+        var view = new NavMapView();
+        WatchUi.switchToView(view, new NavMapDelegate(view), WatchUi.SLIDE_LEFT);
     }
 
 }

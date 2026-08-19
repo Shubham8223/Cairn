@@ -94,49 +94,24 @@ module Utils {
         return minDist;
     }
 
-    // Bounding box (with minimum size + padding) around a set of locations,
-    // for feeding to MapView.setMapVisibleArea().
-    function boundingBox(locations as Array<Position.Location>, paddingFraction as Float) as Array<Position.Location> {
-        var minLat = 0.0;
-        var maxLat = 0.0;
-        var minLng = 0.0;
-        var maxLng = 0.0;
-        var haveBounds = false;
-
-        for (var i = 0; i < locations.size(); i++) {
-            var d = locations[i].toDegrees();
-            var lat = d[0];
-            var lng = d[1];
-            if (!haveBounds) {
-                minLat = lat; maxLat = lat; minLng = lng; maxLng = lng;
-                haveBounds = true;
-            } else {
-                if (lat < minLat) { minLat = lat; }
-                if (lat > maxLat) { maxLat = lat; }
-                if (lng < minLng) { minLng = lng; }
-                if (lng > maxLng) { maxLng = lng; }
-            }
-        }
-
-        var minSpan = 0.0015; // ~150m, keeps a single point from filling the map
-        var latSpan = maxLat - minLat;
-        var lngSpan = maxLng - minLng;
-        if (latSpan < minSpan) { latSpan = minSpan; }
-        if (lngSpan < minSpan) { lngSpan = minSpan; }
-
-        var centerLat = (maxLat + minLat) / 2.0;
-        var centerLng = (maxLng + minLng) / 2.0;
-        var latHalf = (latSpan / 2.0) * (1.0 + paddingFraction);
-        var lngHalf = (lngSpan / 2.0) * (1.0 + paddingFraction);
+    // Bounding box of fixed angular size centered on a point, for feeding to
+    // MapView.setMapVisibleArea() - the span is caller-controlled (see
+    // Constants.ZOOM_SPANS_DEGREES) rather than auto-fit, so NavMapView can
+    // offer manual zoom in/out independent of where the destination is.
+    function boundingBoxAroundCenter(center as Position.Location, spanDegrees as Float) as Array<Position.Location> {
+        var d = center.toDegrees();
+        var lat = d[0];
+        var lng = d[1];
+        var half = spanDegrees / 2.0;
 
         var topLeft = new Position.Location({
-            :latitude => centerLat + latHalf,
-            :longitude => centerLng - lngHalf,
+            :latitude => lat + half,
+            :longitude => lng - half,
             :format => :degrees
         });
         var bottomRight = new Position.Location({
-            :latitude => centerLat - latHalf,
-            :longitude => centerLng + lngHalf,
+            :latitude => lat - half,
+            :longitude => lng + half,
             :format => :degrees
         });
         return [topLeft, bottomRight];
@@ -252,5 +227,60 @@ module Utils {
             });
         }
         return results;
+    }
+
+    // Lets the same search box double as a coordinate entry field: if the
+    // typed text parses as "lat,lng" or "lat lng", use it directly instead
+    // of round-tripping to Nominatim. Returns null for anything else (plain
+    // place-name text fails toFloat() and falls through to normal search).
+    function tryParseCoordinates(text as String) as Position.Location? {
+        var parts = splitCoordinatePair(trimString(text));
+        if (parts == null) {
+            return null;
+        }
+
+        var lat = (parts[0] as String).toFloat();
+        var lng = (parts[1] as String).toFloat();
+        if (lat == null || lng == null) {
+            return null;
+        }
+        if (lat < -90.0 || lat > 90.0 || lng < -180.0 || lng > 180.0) {
+            return null;
+        }
+
+        return new Position.Location({ :latitude => lat, :longitude => lng, :format => :degrees });
+    }
+
+    // Splits "lat,lng" or "lat lng" into a trimmed [lat, lng] string pair,
+    // or null if the text has neither separator.
+    function splitCoordinatePair(trimmed as String) as Array<String>? {
+        var sepIndex = trimmed.find(",");
+        if (sepIndex != null) {
+            return [
+                trimString(trimmed.substring(0, sepIndex) as String),
+                trimString(trimmed.substring(sepIndex + 1, trimmed.length()) as String)
+            ];
+        }
+
+        var spaceIndex = trimmed.find(" ");
+        if (spaceIndex == null) {
+            return null;
+        }
+        return [
+            trimString(trimmed.substring(0, spaceIndex) as String),
+            trimString(trimmed.substring(spaceIndex + 1, trimmed.length()) as String)
+        ];
+    }
+
+    // Converts a CoordinatePicker's selected [hemisphere, wholeDegrees, sep, thousandths]
+    // values into signed decimal degrees, e.g. ["S", 40, ".", 15] -> -40.015.
+    function coordinateValuesToDegrees(values as Array) as Float {
+        var hemisphere = values[0] as String;
+        var whole = values[1] as Number;
+        var thousandths = values[3] as Number;
+
+        var magnitude = whole.toFloat() + (thousandths.toFloat() / 1000.0);
+        var negative = hemisphere.equals("S") || hemisphere.equals("W");
+        return negative ? -magnitude : magnitude;
     }
 }

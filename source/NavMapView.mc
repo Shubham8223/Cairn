@@ -28,6 +28,7 @@ class NavMapView extends WatchUi.MapView {
     private var _alertProgress as Float = 0.0;
     private var _alertTarget as Float = 0.0;
     private var _alertTimer as Timer.Timer?;
+    private var _zoomIndex as Number = Constants.DEFAULT_ZOOM_INDEX;
     private var _lastTopLeft as Position.Location?;
     private var _lastBottomRight as Position.Location?;
 
@@ -96,15 +97,48 @@ class NavMapView extends WatchUi.MapView {
         WatchUi.requestUpdate();
     }
 
+    // Centered on current position at the user-controlled zoom span (see
+    // zoomIn()/zoomOut()) rather than auto-fitting the destination, so
+    // manual zoom behaves predictably like a native map's UP/DOWN zoom.
     function updateMapBounds(current as Position.Location) as Void {
-        var dest = getApp().destination;
-        var points = (dest != null) ? [current, dest] : [current];
-        var box = Utils.boundingBox(points, 0.35f);
+        var span = Constants.ZOOM_SPANS_DEGREES[_zoomIndex];
+        var box = Utils.boundingBoxAroundCenter(current, span);
         _lastTopLeft = box[0];
         _lastBottomRight = box[1];
         // Called from the position callback, not onUpdate(), per the API
         // docs' warning against calling this inside onUpdate() (map flicker).
         setMapVisibleArea(box[0], box[1]);
+    }
+
+    // Bound to the physical UP/DOWN (next/previous page) buttons by
+    // NavMapDelegate. Re-centers on the last known fix immediately rather
+    // than waiting for the next GPS callback, so zoom feels responsive.
+    function zoomIn() as Void {
+        adjustZoom(-1);
+    }
+
+    function zoomOut() as Void {
+        adjustZoom(1);
+    }
+
+    function adjustZoom(delta as Number) as Void {
+        var maxIndex = Constants.ZOOM_SPANS_DEGREES.size() - 1;
+        var newIndex = _zoomIndex + delta;
+        if (newIndex < 0) {
+            newIndex = 0;
+        } else if (newIndex > maxIndex) {
+            newIndex = maxIndex;
+        }
+        if (newIndex == _zoomIndex) {
+            return;
+        }
+        _zoomIndex = newIndex;
+
+        var current = PositionService.getLocation();
+        if (current != null) {
+            updateMapBounds(current);
+        }
+        WatchUi.requestUpdate();
     }
 
     function updateDistanceText(current as Position.Location) as Void {
