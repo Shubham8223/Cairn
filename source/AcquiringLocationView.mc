@@ -75,7 +75,9 @@ class AcquiringLocationView extends WatchUi.View {
         var cy = (dc.getHeight() / 2) - 30;
 
         if (_timedOut) {
-            dc.setColor(Graphics.COLOR_ORANGE, Graphics.COLOR_TRANSPARENT);
+            // Same white as "Locating you..." - one consistent message
+            // style regardless of GPS state, not a different alarm color.
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
             dc.drawText(
                 cx,
                 dc.getHeight() / 2,

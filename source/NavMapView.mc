@@ -195,6 +195,9 @@ class NavMapView extends WatchUi.MapView {
 
         if (current != null) {
             stopGpsWaitAnimation();
+            if (!wasReady) {
+                showToast("GPS Connected");
+            }
             updateMapBounds(current);
             updateDistanceText(current);
             updateOffRouteState(current);
@@ -429,8 +432,11 @@ class NavMapView extends WatchUi.MapView {
         dc.drawText(cx, cy + 55, Graphics.FONT_SMALL, "Waiting for GPS...", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
+    // Same white FONT_SMALL as the "Waiting for GPS..." text above -
+    // deliberately not a different alarm color, so the GPS status message
+    // reads as one consistent element regardless of state.
     function drawGpsTimeoutError(dc as Graphics.Dc, cx as Number, cy as Number) as Void {
-        dc.setColor(Graphics.COLOR_ORANGE, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         dc.drawText(
             cx,
             cy,

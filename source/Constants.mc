@@ -9,9 +9,13 @@ module Constants {
     const NOMINATIM_URL as String = "https://nominatim.openstreetmap.org/search";
     const NOMINATIM_USER_AGENT as String = "Cairn/1.0 garmin-forerunner-965";
     const SEARCH_RESULT_LIMIT as Number = 5;
-    // Degrees-wide box used to bias (not restrict - Nominatim's "viewbox"
-    // without "bounded" only ranks nearby results higher) search results
-    // toward the last known GPS fix, roughly a 50km-ish nearby region.
+    // Two-stage search when a GPS fix is available: try a tight, HARD
+    // restricted box first ("bounded=1" - actually only nearby results,
+    // for category terms like "petrol pump"); if that comes back empty,
+    // fall back to a global search merely biased toward the wider span
+    // (so a specific named place like "Qutub Minar" still resolves from
+    // anywhere, not just when the user happens to be nearby).
+    const SEARCH_NEARBY_SPAN_DEGREES as Float = 0.2f;
     const SEARCH_BIAS_SPAN_DEGREES as Float = 0.5f;
 
     // -- Home screen ----------------------------------------------------

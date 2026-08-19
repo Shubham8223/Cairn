@@ -7,9 +7,17 @@ import Toybox.WatchUi;
 // Handles the submitted search text: fires the Nominatim HTTP GET request
 // and routes the parsed response to a results Menu2 (or a status message
 // on SearchView for empty/failed/no-result cases).
+//
+// Two-stage when a GPS fix is available: a tight, hard-restricted "nearby"
+// search first (so a category term like "petrol pump" actually returns
+// nearby results, the way Google Maps does), falling back to a wider,
+// merely-biased global search if that comes back empty (so a specific
+// named place like "Qutub Minar" still resolves even far from it).
 class SearchTextPickerDelegate extends WatchUi.TextPickerDelegate {
 
     private var _view as SearchView;
+    private var _searchText as String = "";
+    private var _triedGlobalFallback as Boolean = false;
 
     function initialize(view as SearchView) {
         TextPickerDelegate.initialize();
@@ -34,23 +42,40 @@ class SearchTextPickerDelegate extends WatchUi.TextPickerDelegate {
             return true;
         }
 
-        _view.setStatus("Searching...");
+        _searchText = text;
+        _triedGlobalFallback = false;
+        var current = PositionService.getLocation();
+        if (current != null) {
+            _view.setStatus("Searching nearby...");
+            fireSearch(current, true);
+        } else {
+            _triedGlobalFallback = true;
+            _view.setStatus("Searching...");
+            fireSearch(null, false);
+        }
+        return true;
+    }
 
+    function onCancel() as Boolean {
+        return true;
+    }
+
+    function fireSearch(current as Position.Location?, nearby as Boolean) as Void {
         var params = {
-            "q" => text,
+            "q" => _searchText,
             "format" => "json",
             "limit" => Constants.SEARCH_RESULT_LIMIT
         };
 
-        // Bias (not restrict) results toward wherever we last had a GPS
-        // fix, like "near me" in a normal maps app - falls back to a plain
-        // global search when no fix is cached yet (e.g. fresh app launch).
-        var current = PositionService.getLocation();
         if (current != null) {
-            var box = Utils.boundingBoxAroundCenter(current, Constants.SEARCH_BIAS_SPAN_DEGREES);
+            var span = nearby ? Constants.SEARCH_NEARBY_SPAN_DEGREES : Constants.SEARCH_BIAS_SPAN_DEGREES;
+            var box = Utils.boundingBoxAroundCenter(current, span);
             var topLeft = box[0].toDegrees();
             var bottomRight = box[1].toDegrees();
             params.put("viewbox", topLeft[1] + "," + topLeft[0] + "," + bottomRight[1] + "," + bottomRight[0]);
+            if (nearby) {
+                params.put("bounded", 1);
+            }
         }
 
         var options = {
@@ -60,22 +85,23 @@ class SearchTextPickerDelegate extends WatchUi.TextPickerDelegate {
         };
 
         Communications.makeWebRequest(Constants.NOMINATIM_URL, params, options, method(:onSearchResponse));
-        return true;
-    }
-
-    function onCancel() as Boolean {
-        return true;
     }
 
     function onSearchResponse(responseCode as Number, data as Dictionary or String or PersistedContent.Iterator or Null) as Void {
-        if (responseCode != 200 || data == null) {
-            _view.setStatus("Search failed, try again");
-            return;
-        }
+        var results = (responseCode == 200 && data != null) ? Utils.parseNominatimResults(data as Object) : [];
 
-        var results = Utils.parseNominatimResults(data as Object);
         if (results.size() == 0) {
-            _view.setStatus("No results found");
+            // Nearby-bounded attempt found nothing local - retry globally
+            // (biased, not restricted) exactly once before giving up, so
+            // named landmarks still resolve from anywhere.
+            if (!_triedGlobalFallback) {
+                var current = PositionService.getLocation();
+                _triedGlobalFallback = true;
+                _view.setStatus("Searching...");
+                fireSearch(current, false);
+                return;
+            }
+            _view.setStatus(responseCode == 200 ? "No results found" : "Search failed, try again");
             return;
         }
 
