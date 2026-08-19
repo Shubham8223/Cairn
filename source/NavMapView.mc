@@ -32,12 +32,12 @@ class NavMapView extends WatchUi.MapView {
     private var _zoomIndex as Number = Constants.DEFAULT_ZOOM_INDEX;
     private var _toastText as String = "";
     private var _toastTimer as Timer.Timer?;
-    // Animated "acquiring" ring (same Timer-driven pulse technique as
-    // SearchView's dot) plus an elapsed-time counter that flips the banner
-    // to a clear error state after Constants.GPS_ACQUIRE_TIMEOUT_SEC,
-    // instead of waiting on "Waiting for GPS..." forever with no feedback.
-    private var _gpsPulseRadius as Float = 14.0;
-    private var _gpsPulseGrowing as Boolean = false;
+    // Shared GpsIndicator radar-ping animation (see AcquiringLocationView,
+    // which uses the same visual) plus an elapsed-time counter that flips
+    // the banner to a clear error state after
+    // Constants.GPS_ACQUIRE_TIMEOUT_SEC, instead of waiting on
+    // "Waiting for GPS..." forever with no feedback.
+    private var _gpsPhase as Float = 0.0;
     private var _gpsPulseTimer as Timer.Timer?;
     private var _gpsWaitSeconds as Number = 0;
     private var _gpsWaitTicker as Timer.Timer?;
@@ -125,21 +125,10 @@ class NavMapView extends WatchUi.MapView {
         }
     }
 
-    // Ring pulses 14px -> 22px -> 14px while acquiring, giving the same
-    // "actively searching" feel native Garmin apps show instead of static
-    // text.
     function onGpsPulseTick() as Void {
-        var step = 0.6;
-        if (_gpsPulseGrowing) {
-            _gpsPulseRadius += step;
-            if (_gpsPulseRadius >= 22.0) {
-                _gpsPulseGrowing = false;
-            }
-        } else {
-            _gpsPulseRadius -= step;
-            if (_gpsPulseRadius <= 14.0) {
-                _gpsPulseGrowing = true;
-            }
+        _gpsPhase += 0.02;
+        if (_gpsPhase >= 1.0) {
+            _gpsPhase -= 1.0;
         }
         if (!_gpsReady) {
             WatchUi.requestUpdate();
@@ -419,22 +408,17 @@ class NavMapView extends WatchUi.MapView {
         var w = dc.getWidth();
         var h = dc.getHeight();
         var cx = w / 2;
-        var cy = h / 2;
 
         if (_gpsWaitSeconds >= Constants.GPS_ACQUIRE_TIMEOUT_SEC) {
-            drawGpsTimeoutError(dc, cx, cy);
+            drawGpsTimeoutError(dc, cx, h / 2);
             return;
         }
 
-        // Pulsing ring (outline only, so it doesn't blot out the text)
-        // behind the status text - the "actively searching" feel.
-        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(2);
-        dc.drawCircle(cx, cy - 45, _gpsPulseRadius.toNumber());
-        dc.setPenWidth(1);
+        var cy = (h / 2) - 30;
+        GpsIndicator.draw(dc, cx, cy, _gpsPhase);
 
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
-        dc.drawText(cx, cy, Graphics.FONT_SMALL, "Waiting for GPS...", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.drawText(cx, cy + 55, Graphics.FONT_SMALL, "Waiting for GPS...", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     function drawGpsTimeoutError(dc as Graphics.Dc, cx as Number, cy as Number) as Void {
