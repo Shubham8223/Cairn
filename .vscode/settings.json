@@ -1,0 +1,5 @@
+{
+  "monkeyC.jungleFiles": "monkey.jungle",
+  "monkeyC.compilerOptions": "-w",
+  "monkeyC.typeCheckLevel": "Informative"
+}

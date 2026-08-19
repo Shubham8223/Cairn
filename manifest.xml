@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
+    <iq:application entry="CairnApp" id="A1B2C3D4E5F6A1B2C3D4E5F6A1B2C3D4" launcherIcon="@Drawables.LauncherIcon" minSdkVersion="4.2.4" name="@Strings.AppName" type="watch-app">
+        <iq:products>
+            <iq:product id="fr965"/>
+        </iq:products>
+        <iq:permissions>
+            <iq:uses-permission id="Communications"/>
+            <iq:uses-permission id="Positioning"/>
+        </iq:permissions>
+        <iq:languages>
+            <iq:language>eng</iq:language>
+        </iq:languages>
+    </iq:application>
+</iq:manifest>
