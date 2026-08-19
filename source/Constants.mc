@@ -9,9 +9,18 @@ module Constants {
     const NOMINATIM_URL as String = "https://nominatim.openstreetmap.org/search";
     const NOMINATIM_USER_AGENT as String = "Cairn/1.0 garmin-forerunner-965";
     const SEARCH_RESULT_LIMIT as Number = 5;
+    // Degrees-wide box used to bias (not restrict - Nominatim's "viewbox"
+    // without "bounded" only ranks nearby results higher) search results
+    // toward the last known GPS fix, roughly a 50km-ish nearby region.
+    const SEARCH_BIAS_SPAN_DEGREES as Float = 0.5f;
 
     // -- Home screen ----------------------------------------------------
     const HOME_HINT_TEXT as String = "Press SELECT\nto begin";
+
+    // -- GPS acquisition --------------------------------------------------
+    // How long to show an animated "acquiring" state before switching to a
+    // clear "no signal" error instead of waiting indefinitely.
+    const GPS_ACQUIRE_TIMEOUT_SEC as Number = 45;
 
     // -- Off-route detection --------------------------------------------
     const OFF_ROUTE_THRESHOLD_METERS as Float = 50.0f;

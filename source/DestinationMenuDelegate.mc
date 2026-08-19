@@ -89,8 +89,7 @@ class DestinationMenuDelegate extends WatchUi.Menu2InputDelegate {
         app.destination = location;
         app.destinationName = "Current Location";
 
-        var view = new NavMapView();
-        WatchUi.switchToView(view, new NavMapDelegate(view), WatchUi.SLIDE_LEFT);
+        Navigation.showMap();
     }
 
 }

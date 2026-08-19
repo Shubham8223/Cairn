@@ -2,6 +2,7 @@ import Toybox.Attention;
 import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.Position;
+import Toybox.System;
 import Toybox.Timer;
 import Toybox.WatchUi;
 
@@ -31,22 +32,61 @@ class NavMapView extends WatchUi.MapView {
     private var _zoomIndex as Number = Constants.DEFAULT_ZOOM_INDEX;
     private var _toastText as String = "";
     private var _toastTimer as Timer.Timer?;
+    // Animated "acquiring" ring (same Timer-driven pulse technique as
+    // SearchView's dot) plus an elapsed-time counter that flips the banner
+    // to a clear error state after Constants.GPS_ACQUIRE_TIMEOUT_SEC,
+    // instead of waiting on "Waiting for GPS..." forever with no feedback.
+    private var _gpsPulseRadius as Float = 14.0;
+    private var _gpsPulseGrowing as Boolean = false;
+    private var _gpsPulseTimer as Timer.Timer?;
+    private var _gpsWaitSeconds as Number = 0;
+    private var _gpsWaitTicker as Timer.Timer?;
     private var _lastTopLeft as Position.Location?;
     private var _lastBottomRight as Position.Location?;
 
     function initialize() {
         MapView.initialize();
+        // Required: every Garmin MapView sample sets an explicit mode right
+        // after initialize(). Preview (not Browse) because this view drives
+        // its own visible-area/zoom logic (see updateMapBounds/zoomIn/
+        // zoomOut) rather than handing pan/zoom to the native map widget.
+        setMapMode(WatchUi.MAP_MODE_PREVIEW);
+
+        // Set here, not onLayout(): matches Garmin's own MapSample, and a
+        // direct smoke test proved onLayout() isn't guaranteed to run
+        // before the first render in every navigation path, which threw
+        // "Screen visible area top left is not set" mid-crash.
+        var settings = System.getDeviceSettings();
+        setScreenVisibleArea(0, 0, settings.screenWidth, settings.screenHeight);
+
+        // MapView also throws ("Map visible area top left is not set") if
+        // asked to render before setMapVisibleArea() is ever called, and
+        // that doesn't happen until the first GPS fix arrives via
+        // updateMapBounds(). Seed it with the same fallback location
+        // RouteRecorder already uses when nothing's been recorded, so
+        // there's always something valid to draw - real position replaces
+        // it the instant a fix comes in.
+        var fallback = Constants.PREDEFINED_ROUTE[0] as Dictionary;
+        var defaultCenter = new Position.Location({
+            :latitude => fallback.get(:lat) as Float,
+            :longitude => fallback.get(:lng) as Float,
+            :format => :degrees
+        });
+        var defaultBox = Utils.boundingBoxAroundCenter(defaultCenter, Constants.ZOOM_SPANS_DEGREES[_zoomIndex]);
+        setMapVisibleArea(defaultBox[0], defaultBox[1]);
     }
 
     function onLayout(dc as Graphics.Dc) as Void {
-        MapView.onLayout(dc);
-        setScreenVisibleArea(0, 0, dc.getWidth(), dc.getHeight());
     }
 
     function onShow() as Void {
         PositionService.start(method(:onPositionUpdate));
         refreshDestinationMarker();
         refreshRoutePolyline();
+
+        if (!_gpsReady) {
+            startGpsWaitAnimation();
+        }
     }
 
     function onHide() as Void {
@@ -59,6 +99,56 @@ class NavMapView extends WatchUi.MapView {
             _toastTimer.stop();
             _toastTimer = null;
         }
+        stopGpsWaitAnimation();
+    }
+
+    function startGpsWaitAnimation() as Void {
+        if (_gpsPulseTimer == null) {
+            _gpsPulseTimer = new Timer.Timer();
+            _gpsPulseTimer.start(method(:onGpsPulseTick), 50, true);
+        }
+        if (_gpsWaitTicker == null) {
+            _gpsWaitSeconds = 0;
+            _gpsWaitTicker = new Timer.Timer();
+            _gpsWaitTicker.start(method(:onGpsWaitTick), 1000, true);
+        }
+    }
+
+    function stopGpsWaitAnimation() as Void {
+        if (_gpsPulseTimer != null) {
+            _gpsPulseTimer.stop();
+            _gpsPulseTimer = null;
+        }
+        if (_gpsWaitTicker != null) {
+            _gpsWaitTicker.stop();
+            _gpsWaitTicker = null;
+        }
+    }
+
+    // Ring pulses 14px -> 22px -> 14px while acquiring, giving the same
+    // "actively searching" feel native Garmin apps show instead of static
+    // text.
+    function onGpsPulseTick() as Void {
+        var step = 0.6;
+        if (_gpsPulseGrowing) {
+            _gpsPulseRadius += step;
+            if (_gpsPulseRadius >= 22.0) {
+                _gpsPulseGrowing = false;
+            }
+        } else {
+            _gpsPulseRadius -= step;
+            if (_gpsPulseRadius <= 14.0) {
+                _gpsPulseGrowing = true;
+            }
+        }
+        if (!_gpsReady) {
+            WatchUi.requestUpdate();
+        }
+    }
+
+    function onGpsWaitTick() as Void {
+        _gpsWaitSeconds += 1;
+        WatchUi.requestUpdate();
     }
 
     // Brief on-screen confirmation (e.g. "Trail Saved"), used by
@@ -111,12 +201,19 @@ class NavMapView extends WatchUi.MapView {
     function onPositionUpdate(info as Position.Info) as Void {
         PositionService.updateInfo(info);
         var current = info.position;
+        var wasReady = _gpsReady;
         _gpsReady = (current != null);
 
         if (current != null) {
+            stopGpsWaitAnimation();
             updateMapBounds(current);
             updateDistanceText(current);
             updateOffRouteState(current);
+        } else if (wasReady) {
+            // Lost the fix after having one - show the same acquiring
+            // state (and give it a fresh timeout window) rather than
+            // silently freezing on stale data.
+            startGpsWaitAnimation();
         }
 
         WatchUi.requestUpdate();
@@ -210,7 +307,7 @@ class NavMapView extends WatchUi.MapView {
         _alertTarget = value ? 1.0 : 0.0;
         if (_alertTimer == null) {
             _alertTimer = new Timer.Timer();
-            _alertTimer.start(method(:onAlertAnimTick), 30, true);
+            _alertTimer.start(method(:onAlertAnimTick), 50, true);
         }
     }
 
@@ -321,8 +418,34 @@ class NavMapView extends WatchUi.MapView {
     function drawGpsBanner(dc as Graphics.Dc) as Void {
         var w = dc.getWidth();
         var h = dc.getHeight();
+        var cx = w / 2;
+        var cy = h / 2;
+
+        if (_gpsWaitSeconds >= Constants.GPS_ACQUIRE_TIMEOUT_SEC) {
+            drawGpsTimeoutError(dc, cx, cy);
+            return;
+        }
+
+        // Pulsing ring (outline only, so it doesn't blot out the text)
+        // behind the status text - the "actively searching" feel.
+        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(2);
+        dc.drawCircle(cx, cy - 45, _gpsPulseRadius.toNumber());
+        dc.setPenWidth(1);
+
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
-        dc.drawText(w / 2, h / 2, Graphics.FONT_SMALL, "Waiting for GPS...", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.drawText(cx, cy, Graphics.FONT_SMALL, "Waiting for GPS...", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+    }
+
+    function drawGpsTimeoutError(dc as Graphics.Dc, cx as Number, cy as Number) as Void {
+        dc.setColor(Graphics.COLOR_ORANGE, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(
+            cx,
+            cy,
+            Graphics.FONT_SMALL,
+            "No GPS Signal\nTry open sky\nBACK to exit",
+            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
+        );
     }
 
 }

@@ -49,8 +49,7 @@ class HomeMenuDelegate extends WatchUi.Menu2InputDelegate {
     }
 
     function goToMap() as Void {
-        var view = new NavMapView();
-        WatchUi.switchToView(view, new NavMapDelegate(view), WatchUi.SLIDE_LEFT);
+        Navigation.showMap();
     }
 
 }

@@ -30,8 +30,7 @@ class SearchTextPickerDelegate extends WatchUi.TextPickerDelegate {
             var app = getApp();
             app.destination = coords as Position.Location;
             app.destinationName = "Custom Coordinates";
-            var view = new NavMapView();
-            WatchUi.switchToView(view, new NavMapDelegate(view), WatchUi.SLIDE_LEFT);
+            Navigation.showMap();
             return true;
         }
 
@@ -42,6 +41,18 @@ class SearchTextPickerDelegate extends WatchUi.TextPickerDelegate {
             "format" => "json",
             "limit" => Constants.SEARCH_RESULT_LIMIT
         };
+
+        // Bias (not restrict) results toward wherever we last had a GPS
+        // fix, like "near me" in a normal maps app - falls back to a plain
+        // global search when no fix is cached yet (e.g. fresh app launch).
+        var current = PositionService.getLocation();
+        if (current != null) {
+            var box = Utils.boundingBoxAroundCenter(current, Constants.SEARCH_BIAS_SPAN_DEGREES);
+            var topLeft = box[0].toDegrees();
+            var bottomRight = box[1].toDegrees();
+            params.put("viewbox", topLeft[1] + "," + topLeft[0] + "," + bottomRight[1] + "," + bottomRight[0]);
+        }
+
         var options = {
             :method => Communications.HTTP_REQUEST_METHOD_GET,
             :headers => { "User-Agent" => Constants.NOMINATIM_USER_AGENT },

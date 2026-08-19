@@ -22,9 +22,7 @@ class TrailListDelegate extends WatchUi.Menu2InputDelegate {
         }
 
         getApp().routeRecorder.loadTrail(points);
-
-        var view = new NavMapView();
-        WatchUi.switchToView(view, new NavMapDelegate(view), WatchUi.SLIDE_LEFT);
+        Navigation.showMap();
     }
 
 }

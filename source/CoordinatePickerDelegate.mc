@@ -52,8 +52,7 @@ class LongitudePickerDelegate extends WatchUi.PickerDelegate {
         app.destination = new Position.Location({ :latitude => _latitude, :longitude => lng, :format => :degrees });
         app.destinationName = "Custom Coordinates";
 
-        var view = new NavMapView();
-        WatchUi.switchToView(view, new NavMapDelegate(view), WatchUi.SLIDE_LEFT);
+        Navigation.showMap();
         return true;
     }
 

@@ -24,8 +24,7 @@ class SearchDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onMenu() as Boolean {
-        var view = new NavMapView();
-        WatchUi.switchToView(view, new NavMapDelegate(view), WatchUi.SLIDE_LEFT);
+        Navigation.showMap();
         return true;
     }
 
