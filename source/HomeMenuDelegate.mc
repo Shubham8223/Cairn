@@ -15,6 +15,8 @@ class HomeMenuDelegate extends WatchUi.Menu2InputDelegate {
         var id = item.getId();
         if (id == :findDestination) {
             showDestinationMenu();
+        } else if (id == :recordTrail) {
+            recordTrail();
         } else if (id == :loadTrail) {
             showTrailList();
         } else if (id == :goToMap) {
@@ -49,6 +51,14 @@ class HomeMenuDelegate extends WatchUi.Menu2InputDelegate {
     }
 
     function goToMap() as Void {
+        Navigation.showMap();
+    }
+
+    // Symmetric with "Load Trail": a direct, discoverable way to start a
+    // new recording from the home screen, rather than only being
+    // reachable by first going to the map and finding it in Map Options.
+    function recordTrail() as Void {
+        getApp().routeRecorder.startRecording();
         Navigation.showMap();
     }
 
