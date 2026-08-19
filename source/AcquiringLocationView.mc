@@ -68,10 +68,11 @@ class AcquiringLocationView extends WatchUi.View {
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
+        dc.setColor(Graphics.COLOR_WHITE, Constants.GPS_BACKGROUND_COLOR);
         dc.clear();
 
         var cx = dc.getWidth() / 2;
+        var cy = (dc.getHeight() / 2) - 30;
 
         if (_timedOut) {
             dc.setColor(Graphics.COLOR_ORANGE, Graphics.COLOR_TRANSPARENT);
@@ -85,7 +86,7 @@ class AcquiringLocationView extends WatchUi.View {
             return;
         }
 
-        var cy = (dc.getHeight() / 2) - 30;
+        GpsIndicator.drawGlow(dc, cx, cy);
         GpsIndicator.draw(dc, cx, cy, _phase);
 
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);

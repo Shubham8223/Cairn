@@ -45,6 +45,9 @@ module Constants {
     const DEST_LINE_COLOR = Graphics.COLOR_BLUE;
     const ALERT_BANNER_COLOR = Graphics.COLOR_RED;
     const ACCENT_COLOR = Graphics.COLOR_GREEN;
+    // Deep teal, not flat black, for the GPS-acquiring screens - reads as
+    // deliberately designed rather than "nothing rendered yet".
+    const GPS_BACKGROUND_COLOR = 0x0A1815;
 
     // -- Map zoom -----------------------------------------------------------
     // Angular span (degrees) shown around the current position; UP/DOWN step

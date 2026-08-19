@@ -326,11 +326,15 @@ class NavMapView extends WatchUi.MapView {
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
-        MapView.onUpdate(dc);
-
         if (!_gpsReady) {
+            // Skip the map render entirely rather than let it show through:
+            // the seeded fallback location's tiles may not even be
+            // downloaded on this device, which would just be a flat black
+            // rectangle behind the banner anyway. A deliberate background
+            // reads as designed; a possibly-blank map render doesn't.
             drawGpsBanner(dc);
         } else {
+            MapView.onUpdate(dc);
             drawDestinationLine(dc);
             drawHud(dc);
         }
@@ -409,15 +413,19 @@ class NavMapView extends WatchUi.MapView {
         var h = dc.getHeight();
         var cx = w / 2;
 
+        dc.setColor(Graphics.COLOR_WHITE, Constants.GPS_BACKGROUND_COLOR);
+        dc.clear();
+
         if (_gpsWaitSeconds >= Constants.GPS_ACQUIRE_TIMEOUT_SEC) {
             drawGpsTimeoutError(dc, cx, h / 2);
             return;
         }
 
         var cy = (h / 2) - 30;
+        GpsIndicator.drawGlow(dc, cx, cy);
         GpsIndicator.draw(dc, cx, cy, _gpsPhase);
 
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, cy + 55, Graphics.FONT_SMALL, "Waiting for GPS...", Graphics.TEXT_JUSTIFY_CENTER);
     }
 

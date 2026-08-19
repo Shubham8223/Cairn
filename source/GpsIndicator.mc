@@ -16,6 +16,17 @@ module GpsIndicator {
     const MIN_RADIUS = 9.0;
     const MAX_RADIUS = 34.0;
 
+    // Soft layered "glow" behind the rings - a few filled circles stepping
+    // from the screen background up to a lighter shade, approximating a
+    // radial vignette without true alpha blending. Call once before draw()
+    // against whatever solid background color the caller cleared to.
+    function drawGlow(dc as Graphics.Dc, cx as Number, cy as Number) as Void {
+        dc.setColor(0x122822, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(cx, cy, 58);
+        dc.setColor(0x1A3B32, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(cx, cy, 44);
+    }
+
     function draw(dc as Graphics.Dc, cx as Number, cy as Number, phase as Float) as Void {
         drawRing(dc, cx, cy, phase);
         drawRing(dc, cx, cy, wrapPhase(phase + 0.5));
